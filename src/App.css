@@ -43,8 +43,9 @@
 
 .samples {
   display: flex;
-  flex-direction: column;
+  flex-direction: column-reverse;
   align-self: center;
   align-items: center;
+  padding-top: 16px;
   gap: 8px
 }

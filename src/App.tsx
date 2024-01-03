@@ -116,7 +116,7 @@ function App() {
         )}
         {state.state === 'online' && (
           <button>
-            Online
+            Speak!
           </button>
         )}
         {state.state === 'online' && (
@@ -127,9 +127,14 @@ function App() {
           </div>
         )}
       </div>
-      <p className="read-the-docs">
+      {state.state === 'online' && state.segments.length === 0 && (<p className="read-the-docs">
+        Voice segments will appear here
+      </p>
+      )}
+      {state.state !== 'online' && (<p className="read-the-docs">
         Voice activity detection is all you need
       </p>
+      )}
     </>
   )
 }
