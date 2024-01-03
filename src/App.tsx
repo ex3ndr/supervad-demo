@@ -26,6 +26,7 @@ function App() {
           activation_threshold: 0.8,
           activation_tokens: 1,
           prebuffer_tokens: 20,
+          min_active_tokens: 10,
         });
         if (exited) {
           return;

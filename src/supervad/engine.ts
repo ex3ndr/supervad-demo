@@ -48,6 +48,7 @@ export class SuperVADStreamEngine {
         deactivation_threshold: number,
         deactivation_tokens: number,
         prebuffer_tokens: number,
+        min_active_tokens: number,
     }) {
         const engine = await SuperVADEngine.create();
         return new SuperVADStreamEngine({ ...args, engine });
@@ -60,10 +61,12 @@ export class SuperVADStreamEngine {
     readonly deactivation_threshold: number;
     readonly deactivation_tokens: number;
     readonly prebuffer_tokens: number;
+    readonly min_active_tokens: number;
     private readonly engine: SuperVADEngine;
     private state: 'active' | 'activating' | 'deactivated' | 'deactivating';
     private preBuffer = Float32Array.from([]);
     private activeBuffer = Float32Array.from([]);
+    private activeTokens = 0;
     private stateTokens = 0;
 
     constructor(args: {
@@ -73,6 +76,7 @@ export class SuperVADStreamEngine {
         deactivation_threshold: number,
         deactivation_tokens: number,
         prebuffer_tokens: number,
+        min_active_tokens: number,
     }) {
         this.engine = args.engine;
         this.activation_threshold = args.activation_threshold;
@@ -80,17 +84,18 @@ export class SuperVADStreamEngine {
         this.deactivation_threshold = args.deactivation_threshold;
         this.deactivation_tokens = args.deactivation_tokens;
         this.prebuffer_tokens = args.prebuffer_tokens;
+        this.min_active_tokens = args.min_active_tokens;
         this.state = 'deactivated';
     }
 
-    async process(token: Float32Array): Promise<{ state: 'activating' } | { state: 'active' } | { state: 'activation-canceled' } | { state: 'deactivating' } | { state: 'deactivation-canceled' } | { state: 'complete', buffer: Float32Array } | { state: 'unchanged' }> {
+    async process(token: Float32Array): Promise<{ state: 'activating' } | { state: 'active' } | { state: 'activation-canceled' } | { state: 'deactivating' } | { state: 'deactivation-canceled' } | { state: 'complete', buffer: Float32Array, tokens: number } | { state: 'canceled' } | { state: 'unchanged' }> {
 
         //
         // Perform VAD
         //
 
         const prediction = await this.engine.predict(token);
-        console.log(prediction);
+        // console.log(prediction);
 
         //
         // Append to token buffer
@@ -110,6 +115,7 @@ export class SuperVADStreamEngine {
                 if (this.activation_tokens <= 1) {
                     this.state = 'active';
                     this.activeBuffer = this.preBuffer;
+                    this.activeTokens = 1;
                     return { state: 'active' };
                 } else {
                     this.state = 'activating';
@@ -141,6 +147,7 @@ export class SuperVADStreamEngine {
             // Activation succeeded
             if (this.stateTokens >= this.activation_tokens) {
                 this.state = 'active';
+                this.activeTokens = 1;
                 return { state: 'active' };
             }
         }
@@ -148,6 +155,11 @@ export class SuperVADStreamEngine {
         // Handle active state
         if (this.state === 'active') {
             this.activeBuffer = concat(this.activeBuffer, token);
+
+            // Count active tokens
+            if (prediction >= this.activation_threshold) {
+                this.activeTokens++;
+            }
 
             // Check if we should start deactivation
             if (prediction <= this.deactivation_threshold) {
@@ -165,6 +177,7 @@ export class SuperVADStreamEngine {
             if (prediction >= this.activation_threshold) {
                 this.state = 'active';
                 this.stateTokens = 0;
+                this.activeTokens++;
                 return { state: 'deactivation-canceled' };
             }
 
@@ -187,10 +200,15 @@ export class SuperVADStreamEngine {
             // If deactivation successful
             if (this.stateTokens >= this.deactivation_tokens) {
                 const buffer = this.activeBuffer;
+                const tokens = this.activeTokens;
                 this.activeBuffer = new Float32Array(0);
                 this.state = 'deactivated';
                 this.stateTokens = 0;
-                return { state: 'complete', buffer };
+                if (tokens >= this.min_active_tokens) {
+                    return { state: 'complete', buffer, tokens };
+                } else {
+                    return { state: 'canceled' };
+                }
             }
         }
 
