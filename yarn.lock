@@ -1281,6 +1281,11 @@ isexe@^2.0.0:
   resolved "https://registry.yarnpkg.com/isexe/-/isexe-2.0.0.tgz#e8fbf374dc556ff8947a10dcb0572d633f2cfa10"
   integrity sha512-RHxMLp9lnKHGHRng9QFhRCMbYAcVpn69smSGcq3f36xjgVVWThj4qqLbTLlq7Ssj8B+fIQ1EuCEGI2lKsyQeIw==
 
+isomorphic-onnxruntime@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/isomorphic-onnxruntime/-/isomorphic-onnxruntime-1.0.0.tgz#ad254e445e5e43c40cbc8432f04b258105012322"
+  integrity sha512-IuU4r+QkYXar610/3z19tO4Seqz7pPkTBAlY8fdkJoIJaaAZvhgPTl1EB8efDn2lc5YPRdIr2pKGApC5WMfs7w==
+
 "js-tokens@^3.0.0 || ^4.0.0", js-tokens@^4.0.0:
   version "4.0.0"
   resolved "https://registry.yarnpkg.com/js-tokens/-/js-tokens-4.0.0.tgz#19203fb59991df98e3a287050d4647cdeaf32499"
@@ -1425,12 +1430,12 @@ once@^1.3.0:
   dependencies:
     wrappy "1"
 
-onnxruntime-common@~1.16.3:
+onnxruntime-common@1.16.3, onnxruntime-common@~1.16.3:
   version "1.16.3"
   resolved "https://registry.yarnpkg.com/onnxruntime-common/-/onnxruntime-common-1.16.3.tgz#216bd1318d171496f1e92906a801c95bd2fb1aaa"
   integrity sha512-ZZfFzEqBf6YIGwB9PtBLESHI53jMXA+/hn+ACVUbEfPuK2xI5vMGpLPn+idpwCmHsKJNRzRwqV12K+6TQj6tug==
 
-onnxruntime-web@^1.16.3:
+onnxruntime-web@1.16.3:
   version "1.16.3"
   resolved "https://registry.yarnpkg.com/onnxruntime-web/-/onnxruntime-web-1.16.3.tgz#cbd0fccc5348c4e318f80e009c4ea56b634ffc33"
   integrity sha512-8O1xCG/RcNQNYYWvdiQJSNpncVg78OVOFeV6MYs/jx++/b12oje8gYUzKqz9wR/sXiX/8TCvdyHgEjj5gQGKUg==
@@ -1668,6 +1673,13 @@ strip-json-comments@^3.1.1:
   version "3.1.1"
   resolved "https://registry.yarnpkg.com/strip-json-comments/-/strip-json-comments-3.1.1.tgz#31f1281b3832630434831c310c01cccda8cbe006"
   integrity sha512-6fPc+R4ihwqP6N/aIv2f1gMH8lOVtWQHoqC4yK6oSDVVocumAsfCqjkXnqiYMhmMwS/mEHLp7Vehlt3ql6lEig==
+
+supervad@^0.0.3-pre:
+  version "0.0.3-pre"
+  resolved "https://registry.yarnpkg.com/supervad/-/supervad-0.0.3-pre.tgz#d6c88322dcdbe2be86363078e2a72e804f6eff69"
+  integrity sha512-KJzh3J6RkwGr20VKs3Mk0m6UUgIAg35Ty/AE+zcGtBBNPNF3XomUylCfebPPdU+Ny7TBSe2vvrqaDc062OjR7w==
+  dependencies:
+    isomorphic-onnxruntime "^1.0.0"
 
 supports-color@^5.3.0:
   version "5.5.0"

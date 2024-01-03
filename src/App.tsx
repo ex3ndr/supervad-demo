@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './App.css'
-import { SuperVADStreamEngine } from './supervad/engine';
+import { SuperVADEngine, SuperVADRealtime, optimalParameters } from 'supervad';
 import { AsyncLock } from './utils/lock';
 
 function App() {
@@ -10,9 +10,9 @@ function App() {
   } | {
     state: 'loading'
   } | {
-    state: 'loaded', session: SuperVADStreamEngine
+    state: 'loaded', session: SuperVADRealtime
   } | {
-    state: 'online', session: SuperVADStreamEngine, stream: MediaStream, segments: string[]
+    state: 'online', session: SuperVADRealtime, stream: MediaStream, segments: string[]
   }>({ state: 'empty' });
 
   // Load model
@@ -20,14 +20,9 @@ function App() {
     let exited = false;
     if (state.state === 'loading') {
       (async () => {
-        const session = await SuperVADStreamEngine.create({
-          deactivation_threshold: 0.6,
-          deactivation_tokens: 20,
-          activation_threshold: 0.8,
-          activation_tokens: 1,
-          prebuffer_tokens: 20,
-          min_active_tokens: 10,
-        });
+        const engine = await SuperVADEngine.create('./supervad.onnx');
+        const params = optimalParameters();
+        const session = SuperVADRealtime.create(engine, params);
         if (exited) {
           return;
         }
@@ -63,20 +58,20 @@ function App() {
 
         lock.inLock(async () => {
           pending = concat(pending, input);
-          while (pending.length > SuperVADStreamEngine.TOKEN_SIZE) {
-            const output = await session.process(pending.subarray(0, SuperVADStreamEngine.TOKEN_SIZE));
-            pending = pending.subarray(SuperVADStreamEngine.TOKEN_SIZE);
-            if (output.state !== 'unchanged') {
+          while (pending.length > SuperVADEngine.TOKEN_SIZE) {
+            const output = await session.process(pending.subarray(0, SuperVADEngine.TOKEN_SIZE));
+            pending = pending.subarray(SuperVADEngine.TOKEN_SIZE);
+            if (output) {
               console.log(output);
-            }
-            if (output.state === 'complete') {
+              if (output.kind === 'complete') {
 
-              const wavData = float32ArrayToWav(output.buffer, 16000); // Convert to WAV format
-              const blob = new Blob([wavData], { type: 'audio/wav' }); // Create a blob
-              const audioUrl = URL.createObjectURL(blob); // Create an object URL
+                const wavData = float32ArrayToWav(output.buffer, 16000); // Convert to WAV format
+                const blob = new Blob([wavData], { type: 'audio/wav' }); // Create a blob
+                const audioUrl = URL.createObjectURL(blob); // Create an object URL
 
-              segments = [...segments, audioUrl];
-              setState({ state: 'online', session: state.session, stream, segments });
+                segments = [...segments, audioUrl];
+                setState({ state: 'online', session: state.session, stream, segments });
+              }
             }
           }
 
