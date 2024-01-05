@@ -2,6 +2,41 @@ import * as React from 'react';
 import './App.css'
 import { SuperVADEngine, SuperVADRealtime, optimalParameters } from 'supervad';
 import { AsyncLock } from './utils/lock';
+import WhisperWorker from './WhisperWorker?worker';
+
+const worker = new WhisperWorker();
+let workerId = 0;
+async function workerRequest(type: string, data?: Float32Array) {
+  return new Promise((resolve) => {
+    const id = workerId++;
+    const callback = (e: MessageEvent) => {
+      if (e.data.id === id) {
+        worker.removeEventListener('message', callback);
+        resolve(e.data);
+      }
+    }
+    worker.addEventListener('message', callback);
+    worker.postMessage({ id, type, data });
+  });
+}
+
+const AudioPreview = React.memo((props: { url: string, raw: Float32Array }) => {
+
+  const [text, setText] = React.useState<string | null>(null);
+  React.useEffect(() => {
+    workerRequest('transcribe', props.raw).then((v) => {
+      setText((v as any).text);
+    });
+  }, [props.url]);
+
+  return (
+    <>
+      <audio controls src={props.url} />
+      {text !== null && (<span>{text}</span>)}
+      {text === null && (<span>Transcribing...</span>)}
+    </>
+  )
+});
 
 function App() {
   // const [loading, setLoading] = React.useState(false);
@@ -12,7 +47,7 @@ function App() {
   } | {
     state: 'loaded', session: SuperVADRealtime
   } | {
-    state: 'online', session: SuperVADRealtime, stream: MediaStream, segments: string[]
+    state: 'online', session: SuperVADRealtime, stream: MediaStream, segments: { url: string, raw: Float32Array }[]
   }>({ state: 'empty' });
 
   // Load model
@@ -20,7 +55,18 @@ function App() {
     let exited = false;
     if (state.state === 'loading') {
       (async () => {
+
+        // const transformers = await import('@xenova/transformers');
+        // transformers.env.localModelPath = 'https://shared.korshakov.com/models/hugginface/';
+        // transformers.env.remoteHost = 'https://shared.korshakov.com/models/hugginface/';
+
+        // Download whisper
+        await workerRequest('init');
+
+        // Load model
         const engine = await SuperVADEngine.create('./supervad.onnx');
+
+        // Create session
         const params = optimalParameters();
         const session = SuperVADRealtime.create(engine, params);
         if (exited) {
@@ -51,7 +97,7 @@ function App() {
       const processor = audioContext.createScriptProcessor(2048, 1, 1);
       const lock = new AsyncLock();
       let pending: Float32Array = new Float32Array(0);
-      let segments: string[] = [];
+      let segments: { url: string, raw: Float32Array }[] = [];
 
       processor.onaudioprocess = function (e) {
         const input = e.inputBuffer.getChannelData(0);
@@ -69,7 +115,7 @@ function App() {
                 const blob = new Blob([wavData], { type: 'audio/wav' }); // Create a blob
                 const audioUrl = URL.createObjectURL(blob); // Create an object URL
 
-                segments = [...segments, audioUrl];
+                segments = [...segments, { url: audioUrl, raw: output.buffer }];
                 setState({ state: 'online', session: state.session, stream, segments });
               }
             }
@@ -91,7 +137,7 @@ function App() {
       <h1>SuperVAD</h1>
       <div className="card">
         <p>
-          Press button below to download model first (~20mb)
+          Press button below to download models<br /> (SuperVAD + Whisper) first (~60mb)
         </p>
 
         {state.state === 'empty' && (
@@ -117,7 +163,7 @@ function App() {
         {state.state === 'online' && (
           <div className='samples'>
             {state.segments.map((segment, index) => (
-              <audio key={index} controls src={segment} />
+              <AudioPreview key={index} url={segment.url} raw={segment.raw} />
             ))}
           </div>
         )}
