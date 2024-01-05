@@ -49,16 +49,13 @@ function App() {
   } | {
     state: 'online', session: SuperVADRealtime, stream: MediaStream, segments: { url: string, raw: Float32Array }[]
   }>({ state: 'empty' });
+  const [active, setActive] = React.useState(false);
 
   // Load model
   React.useEffect(() => {
     let exited = false;
     if (state.state === 'loading') {
       (async () => {
-
-        // const transformers = await import('@xenova/transformers');
-        // transformers.env.localModelPath = 'https://shared.korshakov.com/models/hugginface/';
-        // transformers.env.remoteHost = 'https://shared.korshakov.com/models/hugginface/';
 
         // Download whisper
         await workerRequest('init');
@@ -121,6 +118,11 @@ function App() {
                 segments = [...segments, { url: audioUrl, raw: output.buffer }];
                 setState({ state: 'online', session: state.session, stream, segments });
               }
+              if (output.kind === 'valid') {
+                setActive(true);
+              } else if (output.kind === 'canceled' || output.kind === 'complete') {
+                setActive(false);
+              }
             }
           }
 
@@ -141,6 +143,9 @@ function App() {
       <div className="card">
         <p>
           Press button below to download models<br /> (SuperVAD + Whisper) first (~60mb)
+          <br />
+          <br />
+          Whisper is english one and won't recognize other languages
         </p>
 
         {state.state === 'empty' && (
@@ -160,7 +165,7 @@ function App() {
         )}
         {state.state === 'online' && (
           <button>
-            Speak!
+            {active ? 'Voice detected' : 'No voice'}
           </button>
         )}
         {state.state === 'online' && (

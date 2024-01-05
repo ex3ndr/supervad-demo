@@ -10,18 +10,17 @@ let whisper: AutomaticSpeechRecognitionPipeline | null = null;
 self.onmessage = (event) => {
     lock.inLock(async () => {
 
-        // Handle init
-        if (event.data.type === 'init') {
-            if (whisper) {
-                self.postMessage({ type: 'ready', id: event.data.id });
-                return;
-            } else {
-                whisper = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
-                self.postMessage({ type: 'ready', id: event.data.id });
-                return;
-            }
+        // Init if needed
+        if (!whisper) {
+            whisper = await pipeline('automatic-speech-recognition', 'Xenova/whisper-tiny.en');
         }
 
+        // Handle init
+        if (event.data.type === 'init') {
+            self.postMessage({ type: 'ready', id: event.data.id });
+        }
+
+        // Handle transcribe
         if (event.data.type === 'transcribe') {
             let data = event.data.data;
             let res = await whisper!(data) as AutomaticSpeechRecognitionOutput;
