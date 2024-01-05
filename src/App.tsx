@@ -1,6 +1,6 @@
 import * as React from 'react';
 import './App.css'
-import { SuperVADEngine, SuperVADRealtime, optimalParameters } from 'supervad';
+import { SuperVADEngine, SuperVADParameters, SuperVADRealtime, optimalParameters } from 'supervad';
 import { AsyncLock } from './utils/lock';
 import WhisperWorker from './WhisperWorker?worker';
 
@@ -67,7 +67,10 @@ function App() {
         const engine = await SuperVADEngine.create('./supervad.onnx');
 
         // Create session
-        const params = optimalParameters();
+        const params: SuperVADParameters = {
+          ...optimalParameters(),
+          deactivationTokens: 60
+        }
         const session = SuperVADRealtime.create(engine, params);
         if (exited) {
           return;
